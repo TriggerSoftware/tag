@@ -1,0 +1,8 @@
+************ Congratulations! Your chart is deployed ************
+
+Tag url    https://{{ .Values.global.subdomain }}.{{ .Values.global.domain }}
+
+Uninstall:  helm delete -n tag {{ .Release.Name }}
+Upgrade:    helm upgrade -i -n tag {{ .Release.Name }} .
+
+*****************************************************************

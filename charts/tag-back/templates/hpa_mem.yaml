@@ -1,0 +1,48 @@
+{{- if eq .Values.hpa_mem true }}
+{{- if .Values.global.tag_back.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Values.appName }}-memory-autoscale
+  labels:
+    app: {{ .Values.global.product }}
+    tier: {{ .Values.appName }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Values.appName }}-deployment
+  minReplicas: {{ .Values.global.tag_back.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.global.tag_back.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.global.tag_back.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.global.tag_back.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+  behavior:
+    scaleDown:
+      policies:
+      - type: Pods
+        value: 4
+        periodSeconds: 60
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+      selectPolicy: Min
+      stabilizationWindowSeconds: 300
+    scaleUp:
+      policies:
+      - type: Pods
+        value: 5
+        periodSeconds: 70
+      - type: Percent
+        value: 12
+        periodSeconds: 80
+      selectPolicy: Max
+      stabilizationWindowSeconds: 0
+{{- end }}
+{{- end }}

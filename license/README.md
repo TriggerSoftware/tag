@@ -1,0 +1,1 @@
+## Request a license from our manager and place it in the chart in the license folder, the file must be named `license.key`

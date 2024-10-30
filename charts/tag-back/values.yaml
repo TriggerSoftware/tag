@@ -1,0 +1,12 @@
+appName: tag-back
+appPort: 9191
+product: tag
+hpa_mem: false
+image:
+  registry: registry.trigger.services
+  repository: tag
+  pullPolicy: Always
+scale:
+  minReplicas: 1
+  maxReplicas: 1
+  targetCPUUtilizationPercentage: 80

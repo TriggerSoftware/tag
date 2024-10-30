@@ -1,0 +1,11 @@
+appName: tag-front
+appPort: 80
+product: tag
+image:
+  registry: registry.trigger.services
+  repository: tag
+  pullPolicy: Always
+scale:
+  minReplicas: 1
+  maxReplicas: 1
+  targetCPUUtilizationPercentage: 80

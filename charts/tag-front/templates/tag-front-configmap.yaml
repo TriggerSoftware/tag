@@ -1,0 +1,144 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.appName }}-nginx-configmap
+  labels:
+    app: {{ .Values.global.product }}
+    tier: {{ .Values.appName }}
+data:
+  nginx.conf: |
+    user  nginx;
+    worker_processes auto;
+    error_log /dev/stdout;
+    pid        /var/run/nginx.pid;
+
+    events {
+        worker_connections  32000;
+        multi_accept on;
+    }
+
+    http {
+        client_max_body_size {{ include "tag.tag_front.nginx.client_max_body_size" . }};
+        server_names_hash_bucket_size 128;
+        include       /etc/nginx/mime.types;
+        default_type  application/octet-stream;
+        log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                          '$status $body_bytes_sent "$http_referer" '
+                          '"$http_user_agent" "$http_x_forwarded_for"';
+        log_format up_log '$server_addr\t$server_port\t$http_x_forwarded_for\t$time_iso8601\tforward-to $upstream_addr\t$request\t$status\t$body_bytes_sent\t$request_time\t$upstream_response_time\t$http_referer\t$http_user_agent\t$http_cookie\t$host';
+        access_log /dev/stdout up_log;
+
+        sendfile        on;
+        tcp_nopush     on;
+
+        server_tokens   off;
+        # disable buffering
+        proxy_buffering off;
+        proxy_max_temp_file_size 0;
+        keepalive_timeout  65;
+        gzip on;
+        gzip_types text/css application/x-javascript text/xml application/xml application/xml+rss text/plain application/javascript text/javascript application/json image/png image/svg+xml;
+        gzip_proxied any;
+        include /etc/nginx/conf.d/*.conf;
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.appName }}-site-configmap
+  labels:
+    app: {{ .Values.global.product }}
+    tier: {{ .Values.appName }}
+data:
+  nginx_{{ .Values.appName }}.conf: |
+    map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+    }
+
+    server {
+
+      listen {{ .Values.appPort }};
+      server_name {{ .Values.global.subdomain}}.{{ .Values.global.domain }};
+
+      charset utf-8;
+      etag off;
+      index index.html;
+      client_max_body_size {{ include "tag.tag_front.nginx.client_max_body_size" . }};
+
+      # gzip
+      gzip on;
+      gzip_vary on;
+      gzip_proxied any;
+      gzip_comp_level 5;
+      gzip_types text/plain text/css text/xml application/json application/javascript application/rss+xml application/atom+xml image/svg+xml image/jpeg image/png text/javascript;
+
+      {{ include "tag.nginx.add_header" . | nindent 6 }}
+
+      location ~ ^/ping$ {
+        return 200 "pong";
+        types         { }
+        default_type  text/plain;
+      }
+
+      location / {
+          root /app;
+          try_files $uri /index.html;
+      }
+
+      location /internal/ {
+      proxy_pass  http://tag-back-service:9191/internal/;
+          proxy_set_header Upgrade $http_upgrade;
+          proxy_set_header Connection 'upgrade';
+          proxy_cache_bypass $http_upgrade;
+          proxy_set_header Host            $host;
+          proxy_set_header X-Forwarded-For $remote_addr;
+      }
+
+      location /api/ {
+      proxy_pass  http://tag-back-service:9191/api/;
+          if ($request_method = 'OPTIONS') {
+                  add_header 'Access-Control-Allow-Origin' '*' always;
+                  add_header 'Access-Control-Allow-Methods' 'GET, POST, DELETE, OPTIONS, PUT, PATCH' always;
+                  add_header 'Access-Control-Allow-Headers' '*' always;
+                  add_header 'Access-Control-Max-Age' 1728000 always;
+                  add_header 'Content-Type' 'text/plain; charset=utf-8';
+                  add_header 'Content-Length' 0;
+                  return 204;
+          }
+          proxy_set_header Upgrade $http_upgrade;
+          proxy_set_header Connection 'upgrade';
+          proxy_cache_bypass $http_upgrade;
+          proxy_set_header Host            $host;
+          proxy_set_header X-Forwarded-For $remote_addr;
+          proxy_set_header X-Custom-Header $http_x_custom_header;
+          proxy_set_header Another-Custom-Header $http_another_custom_header;
+          add_header Access-Control-Allow-Origin *;
+          proxy_pass_request_headers on;
+      }
+
+      location ~ ^/(ws|wss)/ {
+          proxy_pass http://tag-ws-service:8181;
+          proxy_set_header Upgrade $http_upgrade;
+          proxy_set_header Connection 'upgrade';
+          proxy_http_version 1.1;
+      }
+
+      location /callback/ {
+      proxy_pass  http://tag-ws-service:8181/callback/;
+          proxy_set_header Upgrade $http_upgrade;
+          proxy_set_header Connection 'upgrade';
+          proxy_cache_bypass $http_upgrade;
+          proxy_set_header Host            $host;
+          proxy_set_header X-Forwarded-For $remote_addr;
+      }
+
+      location /worker/ {
+      proxy_pass  http://tag-worker-service:9199/;
+          proxy_set_header Upgrade $http_upgrade;
+          proxy_set_header Connection 'upgrade';
+          proxy_cache_bypass $http_upgrade;
+          proxy_set_header Host            $host;
+          proxy_set_header X-Forwarded-For $remote_addr;
+      }
+    }

@@ -1,0 +1,28 @@
+{{- define "tag_env_redis" -}}
+{{- $tag_secret_redis := "" }}
+
+{{- if .Values.global.redis }}
+{{- $tag_secret_redis = .Values.global.redis.secret }}
+{{- else if .Values.global.db }}
+{{- $tag_secret_redis = .Values.global.redis.secret }}
+{{- else }}
+{{- $tag_secret_redis = nil }}
+{{- end }}
+
+{{- $redis_secret_name := ( include "tag.redisSecretName" . ) }}
+- name: REDIS_HOST
+  valueFrom:
+    secretKeyRef:
+      name: {{ $redis_secret_name }}
+      key: host
+- name: REDIS_PORT
+  valueFrom:
+    secretKeyRef:
+      name: {{ $redis_secret_name }}
+      key: port
+- name: REDIS_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: {{ $redis_secret_name }}
+      key: password
+{{- end }}

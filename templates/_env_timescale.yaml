@@ -1,0 +1,35 @@
+{{- define "tag_env_timescale" -}}
+{{- $tag_secret_timescale := "" }}
+{{- if .Values.global.timescale }}
+{{- $tag_secret_timescale = .Values.global.timescale.secret }}
+{{- else }}
+{{- $tag_secret_timescale = nil }}
+{{- end }}
+{{- $timescale_secret_name := ( include "tag.timescaleSecretName" . ) }}
+- name: DB_HOST_STAT
+  valueFrom:
+    secretKeyRef:
+      name: {{ $timescale_secret_name }}
+      key: dbhoststat
+- name: DB_PORT_STAT
+  valueFrom:
+    secretKeyRef:
+      name: {{ $timescale_secret_name }}
+      key: dbportstat
+- name: DB_USER_STAT
+  valueFrom:
+    secretKeyRef:
+      name: {{ $timescale_secret_name }}
+      key: dbuserstat
+- name: DB_PASSWORD_STAT
+  valueFrom:
+    secretKeyRef:
+      name: {{ $timescale_secret_name }}
+      key: dbpwdstat
+- name: DB_NAME_STAT
+  valueFrom:
+    secretKeyRef:
+      name: {{ $timescale_secret_name }}
+      key: dbnamestat
+{{- end }}
+
