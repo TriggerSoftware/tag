@@ -1,0 +1,17 @@
+{{- if eq .Values.global.tag_license.storage.local.enabled true }}
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: {{ .Values.global.tag_license.storage.local.persistantVolumeClaimName }}
+
+  labels:
+    app: {{ .Values.global.product }}
+    tier: {{ .Values.appName }}
+spec:
+  storageClassName: {{ .Values.global.tag_license.storage.local.storageClassName }}
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Mi
+{{- end }}

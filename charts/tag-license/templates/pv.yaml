@@ -1,0 +1,22 @@
+{{- if eq .Values.global.tag_license.storage.local.enabled true }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ .Values.appName }}-pv-{{ .Release.Name }}
+  labels:
+    app: {{ .Values.global.product }}
+    tier: {{ .Values.appName }}
+spec:
+  storageClassName: {{ .Values.global.tag_license.storage.local.storageClassName }}
+  capacity:
+    storage: 100Mi
+  volumeMode: Filesystem
+  claimRef:
+    name: {{ .Values.global.tag_license.storage.local.persistantVolumeClaimName }}
+    namespace: {{ .Release.Namespace }}
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: /app/license
+{{- end }}

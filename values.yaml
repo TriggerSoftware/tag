@@ -1,0 +1,173 @@
+global:
+  domain: "dev.trigger.services"
+  subdomain: "tag-k8s"
+  repotype: "public"
+#   repotype: "tag" #
+  imageRegistry: registry.trigger.services
+  imagePullPolicy: "IfNotPresent"
+  product: tag
+  ingress:
+    annotations:
+      kubernetes.io/ingress.class: private-nginx
+  imagePullSecrets:
+    name: registry-secret
+  imageInit:
+    repository: alpine
+    pullPolicy: IfNotPresent
+    tag: "3.20"
+  deploymentStrategy:
+    type: RollingUpdate
+
+  ingress:
+    enabled: true
+    className: "private-nginx"
+    annotations:
+      ingress.class: "private-nginx"
+      nginx.ingress.kubernetes.io/proxy-body-size: 30m
+      nginx.ingress.kubernetes.io/enable-gzip: "false"
+      nginx.ingress.kubernetes.io/client_max_body_size: 30m
+      nginx.ingress.kubernetes.io/proxy-buffers: '8 16k'
+
+  #######  PostgreSQL  ########
+  db:
+    secret:
+      create: true
+      name: "postgresql-secret"
+      data:
+        dbhost: "10.0.152.53"
+        dbport: "5432"
+        dbuser: "postgres"
+        dbpwd: "postgres"
+        dbname: "tag_db_test"
+
+  #######  TimescaleDB  ########
+  timescale:
+    secret:
+      create: true
+      name: "timescale-secret"
+      data:
+        dbhoststat: "10.0.159.37"
+        dbportstat: "5433"
+        dbuserstat: "timescaledb"
+        dbpwdstat: "timescaledbtagpassword"
+        dbnamestat: "timescaledb"
+
+  #######  Redis  ########
+  redis:
+    secret:
+      create: true
+      name: "redis-secret"
+      data:
+        # host - If you are using redis-cluster, specify hosts separated by commas without spaces
+        host: "10.0.145.208,10.0.145.208,10.0.145.208"
+        # port - If you are using redis-cluster, specify ports separated by commas without spaces
+        port: "6379,6380,6381"
+        password: ""
+
+#####################################################################
+######################### Applications ##############################
+#####################################################################
+
+  tag_back:
+    config:
+      log_level: "error"
+      capchaauth: "off"
+      capchaactive: "on"
+      capchasecret: ""
+      connect_limit: 100000
+      logext: "off"
+      js_enable: "off"
+      out_pool_size: 2048
+      js_libs: "off"
+      js_statements_limit: 10000
+      js_max_requests_per_context: 100
+      smtp_key: ""
+      gpt_token: ""
+      gpt_org: ""
+      group_limits: "off"
+      group_limits_time: 1000
+      mail_script: "https://script.google.com/macros/s/AKfycbwYcWN4QukyHDiJo0RxkUHdIvU9n9UTESjsiQnaPMRpZhqSB8T7YAAJsZA3dm_exx19aw/exec"
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 8
+      targetCPUUtilizationPercentage: 80
+      targetMemoryUtilizationPercentage: 80
+    resources:
+      limits:
+        cpu: 1750m
+        memory: 2000Mi
+      requests:
+        cpu: 1750m
+        memory: 2000Mi
+
+  tag_front:
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 6
+      targetCPUUtilizationPercentage: 80
+      targetMemoryUtilizationPercentage: 80
+    resources:
+      limits:
+        cpu: 800m
+        memory: 600Mi
+      requests:
+        cpu: 800m
+        memory: 400Mi
+
+  tag_worker:
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 10
+      targetCPUUtilizationPercentage: 80
+      targetMemoryUtilizationPercentage: 80
+    resources:
+      limits:
+        cpu: 450m
+        memory: 450Mi
+      requests:
+        cpu: 350m
+        memory: 250Mi
+
+  tag_ws:
+    autoscaling:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 1
+      targetCPUUtilizationPercentage: 80
+      targetMemoryUtilizationPercentage: 80
+    resources:
+      limits:
+        cpu: 350m
+        memory: 250Mi
+      requests:
+        cpu: 250m
+        memory: 200Mi
+
+  tag_license:
+    storage:
+      local:
+        enabled: false
+        persistantVolumeClaimCreate: false      # If you are using AWS EFS set to false
+        persistantVolumeClaimName: license
+        storageClassName: ebs-gp2
+      # AWS EFS
+      efs:
+        enabled: true
+        fileSystemId: fs-0cc9f73a19504356d
+        dnsName: fs-0cc9f73a19504356d.efs.eu-west-1.amazonaws.com
+    autoscaling:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 1
+      targetCPUUtilizationPercentage: 80
+      targetMemoryUtilizationPercentage: 80
+    resources:
+      limits:
+        cpu: 500m
+        memory: 450Mi
+      requests:
+        cpu: 250m
+        memory: 350Mi

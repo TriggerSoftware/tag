@@ -1,0 +1,35 @@
+{{- define "tag_env_db" -}}
+{{- $tag_secret_db := "" }}
+{{- if .Values.global.db }}
+{{- $tag_secret_db = .Values.global.db.secret }}
+{{- else }}
+{{- $tag_secret_db = nil }}
+{{- end }}
+{{- $db_secret_name := ( include "tag.postgresSecretName" . ) }}
+- name: DB_HOST
+  valueFrom:
+    secretKeyRef:
+      name: {{ $db_secret_name }}
+      key: dbhost
+- name: DB_PORT
+  valueFrom:
+    secretKeyRef:
+      name: {{ $db_secret_name }}
+      key: dbport
+- name: DB_USER
+  valueFrom:
+    secretKeyRef:
+      name: {{ $db_secret_name }}
+      key: dbuser
+- name: DB_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: {{ $db_secret_name }}
+      key: dbpwd
+- name: DB_NAME
+  valueFrom:
+    secretKeyRef:
+      name: {{ $db_secret_name }}
+      key: dbname
+{{- end }}
+

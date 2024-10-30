@@ -1,0 +1,80 @@
+{{- $global_data := .Values.global }}
+{{- $tag_data := $global_data.tag_front }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.appName }}-deployment
+  labels:
+    app: {{ .Values.global.product }}
+    tier: {{ .Values.appName }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.appName }}
+  {{- if $tag_data.autoscaling.enabled }}
+  replicas: {{ $tag_data.autoscaling.minReplicas }}
+  {{- else }}
+  replicas: {{ .Values.scale.minReplicas }}
+  {{- end }}
+{{- with $global_data.deploymentStrategy }}
+  strategy:
+{{ toYaml . | trim | indent 4 }}
+{{- end }}
+    {{- if eq $global_data.deploymentStrategy.type "RollingUpdate" }}
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    {{- end }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/tag-front-configmap.yaml") . | sha256sum }}
+      labels:
+        app: {{ .Values.appName }}
+    spec:
+      {{- if not (eq $global_data.repotype "public") }}
+      imagePullSecrets:
+        - name: {{ $global_data.imagePullSecrets.name }}
+      {{- end }}
+      securityContext:
+        {{- toYaml $tag_data.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Values.appName }}
+          image: {{ include "tag-front.imageUrl" . | quote }}
+          resources:
+            {{ .Values.global.tag_front.resources | toYaml | indent 12 | trim }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy | default "IfNotPresent" }}
+          ports:
+          - containerPort: 8080
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: {{ .Values.appPort }}
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: {{ .Values.appPort }}
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          volumeMounts:
+            - name: config-nginx
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+            - name: config-site
+              mountPath: /etc/nginx/conf.d/nginx_{{ .Values.appName }}.conf
+              subPath: nginx_tag-front.conf
+      volumes:
+        - name: config-nginx
+          configMap:
+            name: {{ .Values.appName }}-nginx-configmap
+        - name: config-site
+          configMap:
+            name: {{ .Values.appName }}-site-configmap

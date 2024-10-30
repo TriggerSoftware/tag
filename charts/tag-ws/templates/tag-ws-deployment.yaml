@@ -1,0 +1,79 @@
+{{- $global_data := .Values.global }}
+{{- $tag_data := $global_data.tag_ws }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.appName }}-deployment
+  labels:
+    app: {{ .Values.global.product }}
+    tier: {{ .Values.appName }}
+spec:
+  {{- if $tag_data.autoscaling.enabled }}
+  replicas: {{ $tag_data.autoscaling.minReplicas }}
+  {{- else }}
+  replicas: {{ .Values.scale.minReplicas }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app: {{ .Values.appName }}
+{{- with $global_data.deploymentStrategy }}
+  strategy:
+{{ toYaml . | trim | indent 4 }}
+{{- end }}
+    {{- if eq $global_data.deploymentStrategy.type "RollingUpdate" }}
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    {{- end }}
+  template:
+    metadata:
+      annotations:
+        {{- include "tag-ws.annotations" . | nindent 4 }}
+      labels:
+        app: {{ .Values.appName }}
+    spec:
+      {{- if not (eq $global_data.repotype "public") }}
+      imagePullSecrets:
+        - name: {{ $global_data.imagePullSecrets.name }}
+      {{- end }}
+      securityContext:
+        {{- toYaml $tag_data.podSecurityContext | nindent 8 }}
+      initContainers:
+        {{- include "InitWait.postgres" . | nindent 8 }}
+      containers:
+        - name: {{ .Values.appName }}
+          securityContext: {{- toYaml $tag_data.securityContext | nindent 12 }}
+          image: {{ include "tag-ws.imageUrl" . | quote }}
+          resources:
+            {{- toYaml $tag_data.resources | nindent 12 }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy | default "IfNotPresent" }}
+          ports:
+          - containerPort: {{ .Values.appPort }}
+          env:
+            - name: PORT
+              value: "{{ .Values.appPort }}"
+            - name: WS_MAX_MESSAGE_TTL
+              value: "{{ .Values.global.tag_ws.ws_max_message_ttl | default 2592000 }}"
+            - name: FRONT_URL
+              value: "https://{{ .Values.global.subdomain}}.{{ .Values.global.domain }}"
+            {{- include "tag_env_db" . | nindent 12 }}
+            {{- include "tag_env_timescale" . | nindent 12 }}
+            {{- include "tag_env_redis" . | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: {{ .Values.appPort }}
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /healthcheck
+              port: {{ .Values.appPort }}
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
