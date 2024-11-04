@@ -10,7 +10,7 @@ metadata:
 spec:
   storageClassName: {{ .Values.global.tag_license.storage.local.storageClassName }}
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
   resources:
     requests:
       storage: 100Mi

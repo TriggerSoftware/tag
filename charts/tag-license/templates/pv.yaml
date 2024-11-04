@@ -15,7 +15,7 @@ spec:
     name: {{ .Values.global.tag_license.storage.local.persistantVolumeClaimName }}
     namespace: {{ .Release.Namespace }}
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
   hostPath:
     path: /app/license

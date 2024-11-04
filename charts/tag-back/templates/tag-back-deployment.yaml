@@ -51,7 +51,7 @@ spec:
           - containerPort: {{ .Values.appPort }}
           env:
             - name: LOG_LEVEL
-              value: "{{ .Values.global.tag_back.log_level }}"
+              value: "{{ .Values.global.tag_back.config.log_level }}"
             - name: CAPTHA_AUTH
               value: "{{ .Values.global.tag_back.config.capchaauth }}"
             - name: CACHE_ACTIVE
@@ -94,6 +94,8 @@ spec:
               value: "tag-license-service:8585"
             - name: FRONT_URL
               value: "https://{{ .Values.global.subdomain}}.{{ .Values.global.domain }}"
+            - name: REG_ALLOWED
+              value: "{{ .Values.global.tag_back.config.reg_allowed }}"
             {{- include "tag_env_db" . | nindent 12 }}
             {{- include "tag_env_timescale" . | nindent 12 }}
             {{- include "tag_env_redis" . | nindent 12 }}
