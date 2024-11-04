@@ -3,7 +3,6 @@ kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
   name: {{ .Values.global.tag_license.storage.local.persistantVolumeClaimName }}
-
   labels:
     app: {{ .Values.global.product }}
     tier: {{ .Values.appName }}

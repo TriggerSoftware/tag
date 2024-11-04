@@ -1,1 +1,3 @@
-## Request a license from our manager and place it in the chart in the license folder, the file must be named `license.key`
+## Request a license from our manager and upload using the command:
+
+`curl -F upload=@license.key https://tag.test.com/internal/license`

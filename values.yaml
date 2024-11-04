@@ -149,13 +149,13 @@ global:
   tag_license:
     storage:
       local:
-        enabled: false
-        persistantVolumeClaimCreate: false      # If you are using AWS EFS set to false
+        enabled: true
+        persistantVolumeClaimCreate: true      # If you are using AWS EFS set to false
         persistantVolumeClaimName: license
         storageClassName: ebs-gp2
       # AWS EFS
       efs:
-        enabled: true
+        enabled: false
         fileSystemId: fs-0cc9f73a19504356d
         dnsName: fs-0cc9f73a19504356d.efs.eu-west-1.amazonaws.com
     autoscaling:

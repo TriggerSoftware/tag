@@ -68,33 +68,44 @@ spec:
             timeoutSeconds: 5
             successThreshold: 1
             failureThreshold: 3
-      {{- if eq .Values.global.tag_license.storage.efs.enabled true}}
           volumeMounts:
+      {{- if eq .Values.global.tag_license.storage.efs.enabled true}}
             - name: {{ .Values.appName }}-efs-license
               mountPath: /app/license
+      {{- end }}
+      {{- if .Values.global.tag_license.storage.local.enabled}}
+      {{- if .Values.global.tag_license.storage.local.persistantVolumeClaimCreate }}
+          volumeMounts:
+            - name: {{ .Values.appName }}-license
+              mountPath: /app/license
+              subPath: ""
+              readOnly: false
+        {{- if .Values.global.tag_license.storage.local.create_license_from_Secret }}
+            - name: {{ .Values.appName }}-license-secret
+              mountPath: /app/license/license.key
+              subPath: license.key
+              readOnly: false
+        {{- end }}
+      {{- end }}
+      {{- end }}
       volumes:
+      {{- if eq .Values.global.tag_license.storage.efs.enabled true}}
         - name: {{ .Values.appName }}-efs-license
           persistentVolumeClaim:
           nfs:
             server: {{ .Values.global.tag_license.storage.efs.dnsName }}
             path: /
       {{- end }}
+      {{- if .Values.global.tag_license.storage.local.enabled}}
       {{- if .Values.global.tag_license.storage.local.persistantVolumeClaimCreate }}
-          volumeMounts:
-            - name: {{ .Values.appName }}-license
-              mountPath: /app/license
-              readOnly: false
-      volumes:
         - name: {{ .Values.appName }}-license
           persistentVolumeClaim:
             claimName: {{ .Values.global.tag_license.storage.local.persistantVolumeClaimName }}
             readOnly: false
+        {{- if .Values.global.tag_license.storage.local.create_license_from_Secret }}
+        - name: {{ .Values.appName }}-license-secret
+          secret:
+            secretName: {{ .Values.global.tag_license.licenseSecretName | default "tag-license" }}
+        {{- end }}
       {{- end }}
-#
-#           volumeMounts:
-#             - name: tag-license
-#               mountPath: /app/license
-#       volumes:
-#         - name: tag-license
-#           secret:
-#             secretName: {{ .Values.global.tag_license.licenseSecretName | default "tag-license" }}
+      {{- end }}

@@ -29,11 +29,11 @@
 
 #### 7. If you are using AWS, it is recommended to create an EFS and include it in `global.tag_license.storage`
 
-#### 8. Request a license from our manager and place it in the chart in the license folder, the file must be named `license.key`.
-
+#### 8. Request a license from our manager and upload using the command:
+`curl -F upload=@license.key https://tag.test.com/internal/license`
 
 ### Application Installation/Update
-`helm upgrade --install -n tag-prod --create-namespace tag .`  
+`helm upgrade -i -n tag --create-namespace tag .`  
 
 ### License Update
 
